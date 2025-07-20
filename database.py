@@ -4,7 +4,7 @@ import streamlit as st
 import pymongo
 import socket
 
-@st.cache_resource
+# @st.cache_resource
 def init_connection():
     """Initializes and returns a reusable connection to MongoDB."""
     try:

@@ -65,7 +65,7 @@ def problem_list_page():
             if st.button("🎲 Random", use_container_width=True, disabled=not problem_list):
                 if problem_list:
                     pick = random.choice(problem_list)
-                    st.info(f"**Random Pick:** [{pick['name']}]({pick.get('link', '#')})")
+                    st.info(f"**Random Pick:** [{pick.get('name', 'Unnamed Problem')}]({pick.get('link', '#')})")
 
         st.divider()
 
@@ -75,6 +75,9 @@ def problem_list_page():
         total_pages = max((total_problems - 1) // problems_per_page + 1, 1)
 
         if "problem_list_page_number" not in st.session_state:
+            st.session_state.problem_list_page_number = 1
+        
+        if st.session_state.problem_list_page_number > total_pages:
             st.session_state.problem_list_page_number = 1
 
         col_page = st.columns([1, 4])[0]
@@ -101,37 +104,50 @@ def problem_list_page():
                 col1, col2, col3, col4 = st.columns([0.5, 0.17, 0.17, 0.16])
                 with col1:
                     st.markdown(
-    f"<div style='font-size: 22px; font-weight: bold;'>{problem['name']}</div>",
-    unsafe_allow_html=True
-)
+                        f"<div style='font-size: 22px; font-weight: bold;'>{problem.get('name', 'Unnamed Problem')}</div>",
+                        unsafe_allow_html=True
+                    )
                     tags_html = ""
                     if problem.get("company"): tags_html += render_tag(problem["company"], "#007bff")
                     if problem.get("difficulty"): tags_html += render_tag(problem["difficulty"], get_difficulty_color(problem["difficulty"]))
-                    if "topics" in problem:
+                    if "topics" in problem and problem["topics"]:
                         for topic in problem["topics"]:
                             tags_html += render_tag(topic, "#6c757d")
                     st.markdown(tags_html, unsafe_allow_html=True)
                     st.write(f"**Link:** [{problem.get('link', '#')}]({problem.get('link', '#')})")
 
                 with col2:
-                    solved = user_progress.get(problem_id_str, {}).get("solved", False)
+                    # Get the specific progress for this problem
+                    problem_progress = user_progress.get(problem_id_str, {})
+                    solved = problem_progress.get("solved", False)
+
                     if st.button("✅ Solved" if solved else "Solve", key=f"solve_{problem_id_str}", use_container_width=True):
                         users_collection.update_one(
                             {"username": st.session_state.username},
-                            {
+                            {"$set": {
                                 f"progress.{problem_id_str}.solved": not solved,
                                 f"progress.{problem_id_str}.solved_at": datetime.datetime.now(datetime.timezone.utc) if not solved else None
-                            },
+                            }},
                             upsert=True
                         )
                         st.rerun()
+                    
+                    # --- NEW: Display the solved date ---
+                    if solved:
+                        solved_at_date = problem_progress.get("solved_at")
+                        if solved_at_date:
+                            # Ensure solved_at_date is a datetime object before formatting
+                            if isinstance(solved_at_date, datetime.datetime):
+                                date_str = solved_at_date.strftime("%Y-%m-%d")
+                                st.markdown(f"<p style='font-size:12px; text-align:center; color:#28a745; margin-top: 5px;'>{date_str}</p>", unsafe_allow_html=True)
+                    # --- END NEW ---
 
                 with col3:
                     revised = user_progress.get(problem_id_str, {}).get("revised", False)
                     if st.button("🔄 Revised" if revised else "Revise", key=f"revise_{problem_id_str}", use_container_width=True):
                         users_collection.update_one(
                             {"username": st.session_state.username},
-                            {f"progress.{problem_id_str}.revised": not revised},
+                            {"$set": {f"progress.{problem_id_str}.revised": not revised}},
                             upsert=True
                         )
                         st.rerun()
