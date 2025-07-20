@@ -1,11 +1,15 @@
 # utility.py
 
-from passlib.hash import pbkdf2_sha256
+from passlib.context import CryptContext
 
-def hash_password(password):
-    """Hashes a password for storing."""
-    return pbkdf2_sha256.hash(password)
+# Set up the context for password hashing
+# We specify the hashing algorithm (bcrypt) and schemes
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-def verify_password(stored_password, provided_password):
-    """Verifies a stored password against one provided by the user."""
-    return pbkdf2_sha256.verify(provided_password, stored_password)
+def hash_password(password: str):
+    """Hashes a plain-text password."""
+    return pwd_context.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str):
+    """Verifies a plain password against its hashed version."""
+    return pwd_context.verify(plain_password, hashed_password)
