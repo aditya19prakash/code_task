@@ -52,5 +52,7 @@ def upload_data_page():
                             upsert=True
                         )
                 st.success("Sync complete!")
+                st.sleep(3)
+                st.rerun()
         except Exception as e:
             st.error(f"An error occurred: {e}")
